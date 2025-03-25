@@ -2,6 +2,7 @@
 const cardsContainer = document.getElementById('cards-container');
 const playBtn = document.getElementById('play-btn');
 const discardBtn = document.getElementById('discard-btn');
+const sortBtn = document.getElementById('sort-btn');
 const messageElement = document.getElementById('message');
 const scoreElement = document.getElementById('score');
 
@@ -11,6 +12,7 @@ let currentHand = [];
 let selectedCards = [];
 let score = 0;
 let isProcessing = false;
+let sortOrder = 'ascending'; // Track the current sort order
 
 // Payout values for different hands
 const payouts = {
@@ -35,9 +37,13 @@ function initGame() {
     shuffleDeck();
     updateScore();
     
+    // Set initial sort button text
+    sortBtn.textContent = 'Sort ↑';
+    
     // Event listeners
     playBtn.addEventListener('click', playHand);
     discardBtn.addEventListener('click', discardSelectedCards);
+    sortBtn.addEventListener('click', sortCards);
     
     // Deal initial hand automatically
     dealNewHand();
@@ -69,6 +75,8 @@ function shuffleDeck() {
 function dealNewHand() {
     if (isProcessing) return;
     
+    isProcessing = true;
+    
     if (deck.length < 9) {
         createDeck();
         shuffleDeck();
@@ -83,14 +91,27 @@ function dealNewHand() {
     for (let i = 0; i < 9; i++) {
         const card = deck.pop();
         currentHand.push(card);
-        
-        const cardElement = createCardElement(card, i);
-        cardsContainer.appendChild(cardElement);
     }
+    
+    // Sort the cards according to current sort order
+    sortCurrentHand();
+    
+    // Display the sorted cards
+    displayCards();
     
     // Reset buttons
     playBtn.disabled = true;
     discardBtn.disabled = true;
+    isProcessing = false;
+}
+
+// Display the current hand of cards
+function displayCards() {
+    cardsContainer.innerHTML = '';
+    for (let i = 0; i < currentHand.length; i++) {
+        const cardElement = createCardElement(currentHand[i], i);
+        cardsContainer.appendChild(cardElement);
+    }
 }
 
 // Create a card element
@@ -124,10 +145,8 @@ function toggleCardSelection(cardElement, index) {
         selectedCards.splice(cardIndex, 1);
     }
     
-    // Enable/disable buttons based on selection
-    const selectionCount = selectedCards.length;
-    playBtn.disabled = selectionCount === 0 || selectionCount > 5;
-    discardBtn.disabled = selectionCount === 0 || selectionCount > 5;
+    // Update button states based on selection
+    updateButtonStates();
 }
 
 // Discard selected cards and deal new ones
@@ -145,7 +164,7 @@ function discardSelectedCards() {
         document.querySelector(`.card[data-index="${index}"]`)
     );
     
-    // First step: add fade-out class to all selected cards at once
+    // Prepare cards for transition - add will-change for better performance
     cardElements.forEach(card => {
         // Force layout recalculation for each card before adding the class
         void card.offsetWidth;
@@ -154,11 +173,8 @@ function discardSelectedCards() {
     
     // Wait for all cards to fade out
     setTimeout(() => {
-        // Second step: prepare all the new cards but keep them invisible
-        for (let i = 0; i < indices.length; i++) {
-            const index = indices[i];
-            const cardElement = cardElements[i];
-            
+        // Replace the selected cards with new ones
+        for (const index of indices) {
             if (deck.length === 0) {
                 createDeck();
                 shuffleDeck();
@@ -166,52 +182,23 @@ function discardSelectedCards() {
             
             const newCard = deck.pop();
             currentHand[index] = newCard;
-            
-            // Update image source but keep card invisible
-            const img = cardElement.querySelector('img');
-            img.src = newCard.imgSrc;
-            img.alt = `${newCard.value} of ${newCard.suit}`;
-            
-            // Remove selection styling
-            cardElement.classList.remove('selected');
-            
-            // Keep the card invisible but remove fade-out class
-            // We'll manually control opacity
-            cardElement.style.opacity = '0';
-            cardElement.style.transform = 'scale(0.8)';
         }
         
-        // Give the DOM time to update with new card images
+        // Sort the cards according to current sort order
+        sortCurrentHand();
+        
+        // Display all cards
+        displayCards();
+        
+        // Reset selection
+        selectedCards = [];
+        
+        // After 2 seconds, re-enable interaction
         setTimeout(() => {
-            // Third step: fade all cards back in simultaneously
-            cardElements.forEach(card => {
-                // Remove the fade-out class
-                card.classList.remove('fade-out');
-                
-                // Force a reflow before starting the fade-in animation
-                void card.offsetWidth;
-                
-                // Apply transition and fade in
-                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                card.style.opacity = '1';
-                card.style.transform = '';
-            });
-            
-            // Reset selection
-            selectedCards = [];
-            
-            // Re-enable interaction after animations complete
-            setTimeout(() => {
-                isProcessing = false;
-                playBtn.disabled = true;
-                discardBtn.disabled = true;
-                
-                // Clean up inline styles
-                cardElements.forEach(card => {
-                    card.style.transition = '';
-                });
-            }, 800);
-        }, 50);
+            isProcessing = false;
+            playBtn.disabled = true;
+            discardBtn.disabled = true;
+        }, 2000);
     }, 800); // Wait for fade-out to complete
 }
 
@@ -367,6 +354,75 @@ function hideMessage() {
 // Update score display
 function updateScore() {
     scoreElement.textContent = score;
+}
+
+// Helper function to convert card values to numeric values for sorting
+function getCardValue(value) {
+    if (value === 'jack') return 11;
+    if (value === 'queen') return 12;
+    if (value === 'king') return 13;
+    if (value === 'ace') return 14;
+    return parseInt(value);
+}
+
+// Function to sort cards by rank
+function sortCards() {
+    if (isProcessing || currentHand.length === 0) return;
+    
+    isProcessing = true;
+    
+    // Store the selected cards
+    const selectedCardValues = selectedCards.map(index => currentHand[index]);
+    
+    // Toggle sort order
+    sortOrder = sortOrder === 'ascending' ? 'descending' : 'ascending';
+    
+    // Update the sort button text to indicate current order
+    sortBtn.textContent = sortOrder === 'ascending' ? 'Sort ↑' : 'Sort ↓';
+    
+    // Sort the hand by rank using the helper function
+    sortCurrentHand();
+    
+    // Redraw the cards
+    displayCards();
+    
+    // Reselect the same cards based on their values
+    selectedCards = [];
+    selectedCardValues.forEach(selectedCard => {
+        // Find the new index of the selected card after sorting
+        const newIndex = currentHand.findIndex(card => 
+            card.suit === selectedCard.suit && card.value === selectedCard.value
+        );
+        
+        if (newIndex !== -1) {
+            selectedCards.push(newIndex);
+            const cardElement = document.querySelector(`.card[data-index="${newIndex}"]`);
+            if (cardElement) {
+                cardElement.classList.add('selected');
+            }
+        }
+    });
+    
+    // Update button states based on selection
+    updateButtonStates();
+    
+    isProcessing = false;
+}
+
+// Update button states based on selection
+function updateButtonStates() {
+    const selectionCount = selectedCards.length;
+    playBtn.disabled = selectionCount === 0 || selectionCount > 5;
+    discardBtn.disabled = selectionCount === 0 || selectionCount > 5;
+}
+
+// Function to sort the current hand based on the current sort order
+function sortCurrentHand() {
+    if (sortOrder === 'ascending') {
+        currentHand.sort((a, b) => getCardValue(a.value) - getCardValue(b.value));
+    } else {
+        currentHand.sort((a, b) => getCardValue(b.value) - getCardValue(a.value));
+    }
 }
 
 // Initialize the game when the page loads

@@ -76,6 +76,8 @@ h1 {
     will-change: opacity, transform;
     backface-visibility: hidden;
     flex-shrink: 0;
+    margin-left: -33px;
+    z-index: 1;
 }
 
 .card.fade-out {
@@ -92,9 +94,8 @@ h1 {
 }
 
 .card.selected {
-    transform: translateY(-10px);
+    transform: translateY(-33px); /* 20% of 165px card height */
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    border: 3px solid #f1c40f;
 }
 
 .controls {
@@ -135,6 +136,15 @@ button:disabled {
 
 #discard-btn:hover:not(:disabled) {
     background-color: #c0392b;
+}
+
+#sort-btn {
+    background-color: #9b59b6;
+    color: white;
+}
+
+#sort-btn:hover:not(:disabled) {
+    background-color: #8e44ad;
 }
 
 #deal-btn {
@@ -210,6 +220,11 @@ button:disabled {
     .card {
         min-width: 100px;
         height: 150px;
+        margin-left: -30px;
+    }
+    
+    .card.selected {
+        transform: translateY(-30px); /* 20% of 150px */
     }
 }
 
@@ -221,17 +236,28 @@ button:disabled {
     .card {
         min-width: 90px;
         height: 135px;
+        margin-left: -27px;
+    }
+    
+    .card.selected {
+        transform: translateY(-27px); /* 20% of 135px */
     }
 }
 
 @media (max-width: 768px) {
     .cards-container {
-        gap: 5px;
+        gap: 0;
+        padding: 5px 0;
     }
     
     .card {
         min-width: 80px;
         height: 120px;
+        margin-left: -24px;
+    }
+    
+    .card.selected {
+        transform: translateY(-24px); /* 20% of 120px */
     }
     
     .controls {
