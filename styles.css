@@ -59,24 +59,23 @@ h1 {
     justify-content: center;
     gap: 10px;
     margin-bottom: 10px;
-    min-height: 150px;
+    min-height: 187px;
     padding: 10px 0;
 }
 
 .card {
-    min-width: 110px;
-    height: 165px;
+    width: 125px;
+    height: 175px;
+    margin-right: -40px;
+    position: relative;
+    transition: transform 0.3s ease, opacity 0.3s ease, top 0.5s ease;
+    cursor: pointer;
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
     will-change: opacity, transform;
     backface-visibility: hidden;
     flex-shrink: 0;
-    margin-left: -33px;
     z-index: 1;
 }
 
@@ -94,7 +93,7 @@ h1 {
 }
 
 .card.selected {
-    transform: translateY(-33px); /* 20% of 165px card height */
+    transform: translateY(-41px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
@@ -218,13 +217,13 @@ button:disabled {
     }
     
     .card {
-        min-width: 100px;
-        height: 150px;
-        margin-left: -30px;
+        min-width: 125px;
+        height: 187px;
+        margin-left: -25px;
     }
     
     .card.selected {
-        transform: translateY(-30px); /* 20% of 150px */
+        transform: translateY(-37px);
     }
 }
 
@@ -234,13 +233,13 @@ button:disabled {
     }
     
     .card {
-        min-width: 90px;
-        height: 135px;
-        margin-left: -27px;
+        min-width: 112px;
+        height: 168px;
+        margin-left: -22px;
     }
     
     .card.selected {
-        transform: translateY(-27px); /* 20% of 135px */
+        transform: translateY(-34px);
     }
 }
 
@@ -251,13 +250,13 @@ button:disabled {
     }
     
     .card {
-        min-width: 80px;
-        height: 120px;
-        margin-left: -24px;
+        min-width: 100px;
+        height: 150px;
+        margin-left: -20px;
     }
     
     .card.selected {
-        transform: translateY(-24px); /* 20% of 120px */
+        transform: translateY(-30px);
     }
     
     .controls {
@@ -268,4 +267,32 @@ button:disabled {
     button {
         width: 100%;
     }
+}
+
+.played-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.played-section h3 {
+    color: white;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+#played-cards-container {
+    min-height: 205px;
+    justify-content: center;
+    transition: min-height 0.3s ease;
+}
+
+#played-cards-container .card {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 } 

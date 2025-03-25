@@ -1,5 +1,6 @@
 // Game elements
 const cardsContainer = document.getElementById('cards-container');
+const playedCardsContainer = document.getElementById('played-cards-container');
 const playBtn = document.getElementById('play-btn');
 const discardBtn = document.getElementById('discard-btn');
 const sortBtn = document.getElementById('sort-btn');
@@ -84,7 +85,11 @@ function dealNewHand() {
     
     currentHand = [];
     selectedCards = [];
+    
+    // Clear both card containers
     cardsContainer.innerHTML = '';
+    playedCardsContainer.innerHTML = '';
+    
     hideMessage();
     
     // Deal 9 cards
@@ -204,39 +209,102 @@ function discardSelectedCards() {
 
 // Play the selected hand
 function playHand() {
-    if (isProcessing) return;
-    if (selectedCards.length === 0 || selectedCards.length > 5) return;
-    
+    if (isProcessing || selectedCards.length === 0) return;
     isProcessing = true;
-    playBtn.disabled = true;
-    discardBtn.disabled = true;
-    
-    // Get the selected cards
+
+    // Clear the played cards container
+    playedCardsContainer.innerHTML = '';
+
+    // Create a copy of the selected cards
     const playedCards = selectedCards.map(index => currentHand[index]);
+
+    // Store original positions for animation
+    const originalPositions = [];
     
-    // Evaluate the hand
-    const result = evaluateHand(playedCards);
-    
-    // Display result and update score
-    if (result.win) {
-        score += result.points;
-        updateScore();
-        showMessage(`${result.handName}! You won ${result.points} points!`, 'win');
-    } else {
-        showMessage('Not a winning hand. Try again!', 'lose');
+    // Animate the selected cards (slide up)
+    selectedCards.sort((a, b) => a - b); // Sort in ascending order
+    for (let i = selectedCards.length - 1; i >= 0; i--) {
+        const index = selectedCards[i];
+        const cardElement = cardsContainer.children[index];
+        
+        // Store card details for animation
+        originalPositions.push({
+            card: currentHand[index],
+            rect: cardElement.getBoundingClientRect()
+        });
+        
+        // Remove the card from the current hand
+        currentHand.splice(index, 1);
+        
+        // Remove the card element from the UI
+        cardElement.remove();
     }
     
-    // Reset selection
-    document.querySelectorAll('.card.selected').forEach(card => {
-        card.classList.remove('selected');
-    });
-    selectedCards = [];
+    // Redisplay remaining cards to update their positions
+    displayCards();
     
-    // Wait 2 seconds and deal a new hand
+    // Create and add played cards with animation
+    originalPositions.forEach(({card, rect}) => {
+        const cardElement = createCardElement(card);
+        
+        // Style for animation start position (absolute positioning relative to viewport)
+        cardElement.style.position = 'fixed';
+        cardElement.style.left = `${rect.left}px`;
+        cardElement.style.top = `${rect.top}px`;
+        cardElement.style.width = `${rect.width}px`;
+        cardElement.style.height = `${rect.height}px`;
+        cardElement.style.margin = '0';
+        cardElement.style.zIndex = '100';
+        cardElement.style.transition = 'transform 0.5s ease, top 0.5s ease';
+        
+        // Add to played cards container
+        playedCardsContainer.appendChild(cardElement);
+        
+        // Force reflow
+        void cardElement.offsetWidth;
+        
+        // Calculate destination position
+        const destRect = playedCardsContainer.getBoundingClientRect();
+        const destTop = destRect.top + playedCardsContainer.clientHeight / 2 - rect.height / 2;
+        
+        // Start animation
+        cardElement.style.top = `${destTop}px`;
+    });
+
+    // After animation completes, normalize card positions and evaluate the hand
     setTimeout(() => {
-        isProcessing = false;
-        dealNewHand();
-    }, 2000);
+        // Reset card styling to normal layout
+        playedCardsContainer.innerHTML = '';
+        playedCards.forEach(card => {
+            const cardElement = createCardElement(card);
+            playedCardsContainer.appendChild(cardElement);
+        });
+
+        // Immediately evaluate the hand
+        const result = evaluateHand(playedCards);
+        
+        // Display result and update score
+        if (result.win) {
+            score += result.points;
+            updateScore();
+            showMessage(`${result.handName}! You won ${result.points} points!`, 'win');
+        } else {
+            showMessage('Not a winning hand. Try again!', 'lose');
+        }
+        
+        // After a 2 second delay, deal a new hand
+        setTimeout(() => {
+            // Reset selection
+            selectedCards = [];
+            
+            // Reset isProcessing flag before dealing new hand
+            isProcessing = false;
+            
+            // Deal a new hand
+            dealNewHand();
+        }, 2000);
+        
+    }, 600); // Slightly longer delay to complete sliding animation
 }
 
 // Evaluate a hand to determine if it's a winning poker hand
