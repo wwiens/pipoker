@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PiPoker - Card Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>PiPoker</h1>
+            <div class="score-container">
+                <span>Score: </span>
+                <span id="score">0</span>
+            </div>
+        </header>
+        
+        <div class="table">
+            <div class="cards-container" id="cards-container"></div>
+            
+            <div class="controls">
+                <button id="play-btn" disabled>Play Hand</button>
+                <button id="discard-btn" disabled>Discard Selected</button>
+            </div>
+            
+            <div id="message" class="message"></div>
+        </div>
+        
+        <div class="payout-table">
+            <h3>Payout Table</h3>
+            <ul>
+                <li>Royal Flush: 800</li>
+                <li>Straight Flush: 500</li>
+                <li>Four of a Kind: 250</li>
+                <li>Full House: 150</li>
+                <li>Flush: 100</li>
+                <li>Straight: 80</li>
+                <li>Three of a Kind: 50</li>
+                <li>Two Pair: 25</li>
+                <li>Jacks or Better: 10</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
