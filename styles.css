@@ -27,6 +27,51 @@ body {
     color: white;
 }
 
+.left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+}
+
+.hands-section {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+}
+
+.hands-section h2 {
+    color: #fff;
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+}
+
+.hands-section h2:last-of-type {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+#hands-counter {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #4CAF50;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    margin-bottom: 10px;
+}
+
+#discard-counter {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #4CAF50;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    margin-top: 20px;
+}
+
+.button-section {
+    margin-top: auto;
+}
+
 .panel-header {
     text-align: center;
 }
@@ -38,10 +83,11 @@ body {
 }
 
 .score-container {
-    font-size: 1.5rem;
+    font-size: 2.5rem;
     font-weight: bold;
     background-color: rgba(255, 255, 255, 0.1);
-    color: white;
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     padding: 12px 20px;
     border-radius: 8px;
     display: inline-block;

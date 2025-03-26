@@ -4,8 +4,13 @@ const playedCardsContainer = document.getElementById('played-cards-container');
 const playBtn = document.getElementById('play-btn');
 const discardBtn = document.getElementById('discard-btn');
 const sortBtn = document.getElementById('sort-btn');
+const payoutBtn = document.getElementById('payout-btn');
 const messageElement = document.getElementById('message');
 const scoreElement = document.getElementById('score');
+const handsCounterElement = document.getElementById('hands-counter');
+const modal = document.getElementById('payout-modal');
+const closeBtn = document.querySelector('.close');
+const discardCounterElement = document.getElementById('discard-counter');
 
 // Game state
 let deck = [];
@@ -14,6 +19,12 @@ let selectedCards = [];
 let score = 0;
 let isProcessing = false;
 let sortOrder = 'ascending'; // Track the current sort order
+let handsPlayed = 0; // Track number of hands played
+let discardsUsed = 0; // Track number of discards used
+const MAX_HANDS = 5; // Maximum number of hands allowed
+const MAX_DISCARDS = 3; // Maximum number of discards allowed
+const WIN_THRESHOLD = 500; // Points needed to win
+let isResetting = false;
 
 // Payout values for different hands
 const payouts = {
@@ -41,10 +52,28 @@ function initGame() {
     // Set initial sort button text
     sortBtn.textContent = 'Sort ↑';
     
-    // Event listeners
+    // Remove any existing event listeners first
+    playBtn.removeEventListener('click', playHand);
+    discardBtn.removeEventListener('click', discardSelectedCards);
+    sortBtn.removeEventListener('click', sortCards);
+    payoutBtn.removeEventListener('click', showPayoutTable);
+    closeBtn.removeEventListener('click', hidePayoutTable);
+    
+    // Add event listeners
     playBtn.addEventListener('click', playHand);
     discardBtn.addEventListener('click', discardSelectedCards);
     sortBtn.addEventListener('click', sortCards);
+    payoutBtn.addEventListener('click', showPayoutTable);
+    closeBtn.addEventListener('click', hidePayoutTable);
+    
+    // Close modal when clicking outside
+    const modalClickHandler = (event) => {
+        if (event.target === modal) {
+            hidePayoutTable();
+        }
+    };
+    window.removeEventListener('click', modalClickHandler);
+    window.addEventListener('click', modalClickHandler);
     
     // Deal initial hand automatically
     dealNewHand();
@@ -72,42 +101,84 @@ function shuffleDeck() {
     }
 }
 
-// Deal a new hand of 9 cards
+// Add new function to handle game end conditions
+function checkGameEnd() {
+    if (handsPlayed >= MAX_HANDS) {
+        if (score >= WIN_THRESHOLD) {
+            showMessage(`Congratulations! You won with ${score} points! Starting new game...`, 'win');
+        } else {
+            showMessage(`Game Over! You scored ${score} points. Starting new game...`, 'lose');
+        }
+        
+        // Use requestAnimationFrame to ensure smooth transition
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                resetGame();
+            }, 2000);
+        });
+        return true;
+    }
+    return false;
+}
+
+// Modify dealNewHand to remove game end check
 function dealNewHand() {
-    if (isProcessing) return;
+    console.log('Starting dealNewHand...');
+    if (isProcessing) {
+        console.log('Deal blocked - game is processing');
+        return;
+    }
     
     isProcessing = true;
+    console.log('Set isProcessing to true');
     
+    // Ensure we have enough cards
     if (deck.length < 9) {
+        console.log('Deck too small, creating new deck');
         createDeck();
         shuffleDeck();
     }
     
+    // Reset the current hand and selection
     currentHand = [];
     selectedCards = [];
+    console.log('Reset currentHand and selectedCards');
     
     // Clear both card containers
     cardsContainer.innerHTML = '';
     playedCardsContainer.innerHTML = '';
+    console.log('Cleared card containers');
     
     hideMessage();
     
     // Deal 9 cards
+    console.log('Starting to deal 9 cards');
     for (let i = 0; i < 9; i++) {
         const card = deck.pop();
         currentHand.push(card);
+        console.log(`Dealt card ${i + 1}: ${card.value} of ${card.suit}`);
     }
     
     // Sort the cards according to current sort order
     sortCurrentHand();
+    console.log('Sorted cards');
     
     // Display the sorted cards
     displayCards();
+    console.log('Displayed cards');
     
     // Reset buttons
     playBtn.disabled = true;
     discardBtn.disabled = true;
+    console.log('Reset button states');
+    
     isProcessing = false;
+    console.log('Set isProcessing to false');
+    console.log('dealNewHand complete. Current state:', { 
+        currentHandLength: currentHand.length, 
+        deckLength: deck.length,
+        isResetting 
+    });
 }
 
 // Display the current hand of cards
@@ -158,10 +229,22 @@ function toggleCardSelection(cardElement, index) {
 function discardSelectedCards() {
     if (isProcessing) return;
     if (selectedCards.length === 0 || selectedCards.length > 5) return;
+    if (discardsUsed >= MAX_DISCARDS) {
+        showMessage(`No more discards available! You've used all ${MAX_DISCARDS} discards.`, 'lose');
+        // Hide the message after 2 seconds
+        setTimeout(() => {
+            hideMessage();
+        }, 2000);
+        return;
+    }
     
     isProcessing = true;
     discardBtn.disabled = true;
     playBtn.disabled = true;
+    
+    // Increment discard counter
+    discardsUsed++;
+    updateDiscardCounter();
     
     // Store the indices and elements for later use
     const indices = [...selectedCards]; // Create a copy
@@ -207,7 +290,14 @@ function discardSelectedCards() {
     }, 800); // Wait for fade-out to complete
 }
 
-// Play the selected hand
+// Helper function to get card value for scoring
+function getCardScoreValue(value) {
+    if (value === 'jack' || value === 'queen' || value === 'king') return 10;
+    if (value === 'ace') return 11;
+    return parseInt(value);
+}
+
+// Modify playHand to use the new checkGameEnd function
 function playHand() {
     if (isProcessing || selectedCards.length === 0) return;
     isProcessing = true;
@@ -280,30 +370,64 @@ function playHand() {
             playedCardsContainer.appendChild(cardElement);
         });
 
-        // Immediately evaluate the hand
+        // Evaluate the hand
         const result = evaluateHand(playedCards);
+        
+        // Calculate card value points
+        const cardPoints = playedCards.reduce((total, card) => total + getCardScoreValue(card.value), 0);
         
         // Display result and update score
         if (result.win) {
-            score += result.points;
+            const totalPoints = result.points + cardPoints;
+            score += totalPoints;
             updateScore();
-            showMessage(`${result.handName}! You won ${result.points} points!`, 'win');
+            showMessage(`${result.handName}! You won ${result.points} points for the hand plus ${cardPoints} points for the cards!`, 'win');
         } else {
             showMessage('Not a winning hand. Try again!', 'lose');
         }
         
-        // After a 2 second delay, deal a new hand
+        // Increment hands played
+        handsPlayed++;
+        updateHandsCounter();
+        
+        // Check for game end
+        if (checkGameEnd()) {
+            return;
+        }
+        
+        // After a 2 second delay, deal new cards to replace the played ones
         setTimeout(() => {
             // Reset selection
             selectedCards = [];
             
-            // Reset isProcessing flag before dealing new hand
+            // Clear the message and played cards
+            hideMessage();
+            playedCardsContainer.innerHTML = '';
+            
+            // Deal new cards to replace the played ones
+            if (deck.length < playedCards.length) {
+                createDeck();
+                shuffleDeck();
+            }
+            
+            // Add new cards to the current hand
+            for (let i = 0; i < playedCards.length; i++) {
+                const newCard = deck.pop();
+                currentHand.push(newCard);
+            }
+            
+            // Sort the cards according to current sort order
+            sortCurrentHand();
+            
+            // Display the updated hand
+            displayCards();
+            
+            // Reset isProcessing flag
             isProcessing = false;
             
-            // Deal a new hand
-            dealNewHand();
+            // Update button states
+            updateButtonStates();
         }, 2000);
-        
     }, 600); // Slightly longer delay to complete sliding animation
 }
 
@@ -326,21 +450,28 @@ function evaluateHand(cards) {
     
     // Check for different poker hands
     
-    // Check for flush (all same suit)
-    const isFlush = suits.every(suit => suit === suits[0]);
-    
-    // Check for straight (consecutive values)
-    let isStraight = true;
-    for (let i = 1; i < cardValues.length; i++) {
-        if (cardValues[i] !== cardValues[i-1] + 1) {
-            isStraight = false;
-            break;
-        }
+    // Check for flush (exactly 5 cards of same suit)
+    const suitCounts = {};
+    for (const suit of suits) {
+        suitCounts[suit] = (suitCounts[suit] || 0) + 1;
     }
+    const isFlush = Object.values(suitCounts).includes(5);
     
-    // Special case for A-5 straight
-    if (!isStraight && cardValues.join(',') === '2,3,4,5,14') {
+    // Check for straight (exactly 5 consecutive values)
+    let isStraight = false;
+    if (cardValues.length === 5) {
         isStraight = true;
+        for (let i = 1; i < cardValues.length; i++) {
+            if (cardValues[i] !== cardValues[i-1] + 1) {
+                isStraight = false;
+                break;
+            }
+        }
+        
+        // Special case for A-5 straight
+        if (!isStraight && cardValues.join(',') === '2,3,4,5,14') {
+            isStraight = true;
+        }
     }
     
     // Royal flush
@@ -371,12 +502,12 @@ function evaluateHand(cards) {
         return { win: true, handName: 'Full House', points: payouts.fullHouse };
     }
     
-    // Flush
+    // Flush (must be exactly 5 cards of same suit)
     if (isFlush) {
         return { win: true, handName: 'Flush', points: payouts.flush };
     }
     
-    // Straight
+    // Straight (must be exactly 5 consecutive cards)
     if (isStraight) {
         return { win: true, handName: 'Straight', points: payouts.straight };
     }
@@ -491,6 +622,70 @@ function sortCurrentHand() {
     } else {
         currentHand.sort((a, b) => getCardValue(b.value) - getCardValue(a.value));
     }
+}
+
+// Show payout table modal
+function showPayoutTable() {
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
+}
+
+// Hide payout table modal
+function hidePayoutTable() {
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto'; // Restore scrolling
+}
+
+// Update hands counter display
+function updateHandsCounter() {
+    handsCounterElement.textContent = MAX_HANDS - handsPlayed;
+}
+
+// Add function to update discard counter display
+function updateDiscardCounter() {
+    discardCounterElement.textContent = MAX_DISCARDS - discardsUsed;
+}
+
+// Reset the game state
+function resetGame() {
+    console.log('Starting game reset...');
+    console.log('Current state:', { score, handsPlayed, deckLength: deck.length });
+    
+    isResetting = true;
+    console.log('Set isResetting to true');
+    
+    // Reset game state
+    score = 0;
+    handsPlayed = 0;
+    discardsUsed = 0; // Reset discard counter
+    console.log('Reset score, handsPlayed, and discardsUsed to 0');
+    
+    // Update UI
+    updateScore();
+    updateHandsCounter();
+    updateDiscardCounter(); // Update discard counter display
+    console.log('Updated UI displays');
+    
+    // Clear UI elements
+    hideMessage();
+    cardsContainer.innerHTML = '';
+    playedCardsContainer.innerHTML = '';
+    console.log('Cleared UI elements');
+    
+    // Reset deck
+    createDeck();
+    shuffleDeck();
+    console.log('Created and shuffled new deck. Deck length:', deck.length);
+    
+    // Ensure processing is false before dealing new hand
+    isProcessing = false;
+    
+    // Deal new hand
+    console.log('Calling dealNewHand...');
+    dealNewHand();
+    
+    isResetting = false;
+    console.log('Reset complete. Final state:', { score, handsPlayed, deckLength: deck.length });
 }
 
 // Initialize the game when the page loads
