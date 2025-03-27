@@ -68,6 +68,14 @@ body {
     margin-top: 20px;
 }
 
+#current-hand-points {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #4CAF50;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    margin-top: 20px;
+}
+
 .button-section {
     margin-top: auto;
 }
@@ -566,7 +574,7 @@ button:disabled {
     font-weight: bold;
     font-size: 2.5em;
     z-index: 1000;
-    animation: fadeInOut 0.5s ease-in-out;
+    animation: fadeInOut 0.8s ease-in-out;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     border: 3px solid #ffffff;
@@ -574,7 +582,7 @@ button:disabled {
 
 @keyframes fadeInOut {
     0% { opacity: 0; transform: translate(-50%, 10px); }
-    20% { opacity: 1; transform: translate(-50%, 0); }
-    80% { opacity: 1; transform: translate(-50%, 0); }
+    10% { opacity: 1; transform: translate(-50%, 0); }
+    90% { opacity: 1; transform: translate(-50%, 0); }
     100% { opacity: 0; transform: translate(-50%, -10px); }
 } 

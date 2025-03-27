@@ -11,6 +11,7 @@ const handsCounterElement = document.getElementById('hands-counter');
 const modal = document.getElementById('payout-modal');
 const closeBtn = document.querySelector('.close');
 const discardCounterElement = document.getElementById('discard-counter');
+const currentHandPointsElement = document.getElementById('current-hand-points');
 
 // Game state
 let deck = [];
@@ -297,10 +298,18 @@ function getCardScoreValue(value) {
     return parseInt(value);
 }
 
-// Modify playHand to use the new checkGameEnd function
+// Add function to update current hand points display
+function updateCurrentHandPoints(points) {
+    currentHandPointsElement.textContent = points;
+}
+
+// Modify playHand function to update current hand points
 function playHand() {
     if (isProcessing || selectedCards.length === 0) return;
     isProcessing = true;
+
+    // Reset current hand points
+    updateCurrentHandPoints(0);
 
     // Clear the played cards container
     playedCardsContainer.innerHTML = '';
@@ -365,7 +374,16 @@ function playHand() {
     setTimeout(() => {
         // Reset card styling to normal layout
         playedCardsContainer.innerHTML = '';
-        playedCards.forEach(card => {
+        
+        // Sort played cards according to current sort order
+        const sortedPlayedCards = [...playedCards].sort((a, b) => {
+            const valueA = getCardValue(a.value);
+            const valueB = getCardValue(b.value);
+            return sortOrder === 'ascending' ? valueA - valueB : valueB - valueA;
+        });
+        
+        // Display sorted cards
+        sortedPlayedCards.forEach(card => {
             const cardElement = createCardElement(card);
             playedCardsContainer.appendChild(cardElement);
         });
@@ -379,8 +397,8 @@ function playHand() {
         // Show individual card scores sequentially
         let currentIndex = 0;
         const showNextCardScore = () => {
-            if (currentIndex < playedCards.length) {
-                const card = playedCards[currentIndex];
+            if (currentIndex < sortedPlayedCards.length) {
+                const card = sortedPlayedCards[currentIndex];
                 const cardElement = playedCardsContainer.children[currentIndex];
                 
                 // Only show score if the card is part of the winning hand
@@ -394,12 +412,16 @@ function playHand() {
                     scoreElement.textContent = `+${score}`;
                     cardElement.appendChild(scoreElement);
                     
+                    // Update current hand points
+                    const currentPoints = parseInt(currentHandPointsElement.textContent);
+                    updateCurrentHandPoints(currentPoints + score);
+                    
                     // Remove score after delay
                     setTimeout(() => {
                         scoreElement.remove();
                         currentIndex++;
                         showNextCardScore();
-                    }, 500);
+                    }, 800);
                 } else {
                     // Skip scoring for non-winning cards
                     currentIndex++;
@@ -434,14 +456,17 @@ function playHand() {
                     hideMessage();
                     playedCardsContainer.innerHTML = '';
                     
+                    // Reset current hand points
+                    updateCurrentHandPoints(0);
+                    
                     // Deal new cards to replace the played ones
-                    if (deck.length < playedCards.length) {
+                    if (deck.length < sortedPlayedCards.length) {
                         createDeck();
                         shuffleDeck();
                     }
                     
                     // Add new cards to the current hand
-                    for (let i = 0; i < playedCards.length; i++) {
+                    for (let i = 0; i < sortedPlayedCards.length; i++) {
                         const newCard = deck.pop();
                         currentHand.push(newCard);
                     }
@@ -461,8 +486,25 @@ function playHand() {
             }
         };
         
-        // Start showing card scores
-        showNextCardScore();
+        // Start showing hand points first, then card scores
+        if (result.win) {
+            // Show hand points first
+            const handScoreElement = document.createElement('div');
+            handScoreElement.className = 'card-score';
+            handScoreElement.textContent = `+${result.points}`;
+            playedCardsContainer.appendChild(handScoreElement);
+            
+            // Update current hand points with hand value
+            updateCurrentHandPoints(result.points);
+            
+            // Remove hand score and start showing card scores
+            setTimeout(() => {
+                handScoreElement.remove();
+                showNextCardScore();
+            }, 800);
+        } else {
+            showNextCardScore();
+        }
     }, 600); // Slightly longer delay to complete sliding animation
 }
 
@@ -722,6 +764,7 @@ function resetGame() {
     score = 0;
     handsPlayed = 0;
     discardsUsed = 0; // Reset discard counter
+    updateCurrentHandPoints(0); // Reset current hand points
     console.log('Reset score, handsPlayed, and discardsUsed to 0');
     
     // Update UI
