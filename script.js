@@ -373,8 +373,8 @@ function playHand() {
         // Evaluate the hand
         const result = evaluateHand(playedCards);
         
-        // Calculate card value points
-        const cardPoints = playedCards.reduce((total, card) => total + getCardScoreValue(card.value), 0);
+        // Calculate card value points only for cards in the winning hand
+        const cardPoints = result.win ? result.winningCards.reduce((total, card) => total + getCardScoreValue(card.value), 0) : 0;
         
         // Show individual card scores sequentially
         let currentIndex = 0;
@@ -382,20 +382,29 @@ function playHand() {
             if (currentIndex < playedCards.length) {
                 const card = playedCards[currentIndex];
                 const cardElement = playedCardsContainer.children[currentIndex];
-                const score = getCardScoreValue(card.value);
                 
-                // Create and show score element
-                const scoreElement = document.createElement('div');
-                scoreElement.className = 'card-score';
-                scoreElement.textContent = `+${score}`;
-                cardElement.appendChild(scoreElement);
-                
-                // Remove score after delay
-                setTimeout(() => {
-                    scoreElement.remove();
+                // Only show score if the card is part of the winning hand
+                if (result.win && result.winningCards.some(winningCard => 
+                    winningCard.suit === card.suit && winningCard.value === card.value)) {
+                    const score = getCardScoreValue(card.value);
+                    
+                    // Create and show score element
+                    const scoreElement = document.createElement('div');
+                    scoreElement.className = 'card-score';
+                    scoreElement.textContent = `+${score}`;
+                    cardElement.appendChild(scoreElement);
+                    
+                    // Remove score after delay
+                    setTimeout(() => {
+                        scoreElement.remove();
+                        currentIndex++;
+                        showNextCardScore();
+                    }, 500);
+                } else {
+                    // Skip scoring for non-winning cards
                     currentIndex++;
                     showNextCardScore();
-                }, 500);
+                }
             } else {
                 // All cards scored, show total result
                 if (result.win) {
@@ -500,16 +509,6 @@ function evaluateHand(cards) {
         }
     }
     
-    // Royal flush
-    if (isFlush && isStraight && cardValues[0] === 10) {
-        return { win: true, handName: 'Royal Flush', points: payouts.royalFlush };
-    }
-    
-    // Straight flush
-    if (isFlush && isStraight) {
-        return { win: true, handName: 'Straight Flush', points: payouts.straightFlush };
-    }
-    
     // Count occurrences of each value
     const valueCounts = {};
     for (const value of cardValues) {
@@ -518,41 +517,80 @@ function evaluateHand(cards) {
     
     const counts = Object.values(valueCounts);
     
+    // Royal flush
+    if (isFlush && isStraight && cardValues[0] === 10) {
+        const winningCards = cards.filter(card => {
+            const value = getCardValue(card.value);
+            return value >= 10;
+        });
+        return { win: true, handName: 'Royal Flush', points: payouts.royalFlush, winningCards };
+    }
+    
+    // Straight flush
+    if (isFlush && isStraight) {
+        const winningCards = cards.filter(card => {
+            const value = getCardValue(card.value);
+            return value >= cardValues[0] && value <= cardValues[cardValues.length - 1];
+        });
+        return { win: true, handName: 'Straight Flush', points: payouts.straightFlush, winningCards };
+    }
+    
     // Four of a kind
     if (counts.includes(4)) {
-        return { win: true, handName: 'Four of a Kind', points: payouts.fourOfAKind };
+        const fourValue = Object.entries(valueCounts).find(([_, count]) => count === 4)[0];
+        const winningCards = cards.filter(card => getCardValue(card.value) === parseInt(fourValue));
+        return { win: true, handName: 'Four of a Kind', points: payouts.fourOfAKind, winningCards };
     }
     
     // Full house (three of a kind and a pair)
     if (counts.includes(3) && counts.includes(2)) {
-        return { win: true, handName: 'Full House', points: payouts.fullHouse };
+        const threeValue = Object.entries(valueCounts).find(([_, count]) => count === 3)[0];
+        const pairValue = Object.entries(valueCounts).find(([_, count]) => count === 2)[0];
+        const winningCards = cards.filter(card => {
+            const value = getCardValue(card.value);
+            return value === parseInt(threeValue) || value === parseInt(pairValue);
+        });
+        return { win: true, handName: 'Full House', points: payouts.fullHouse, winningCards };
     }
     
     // Flush (must be exactly 5 cards of same suit)
     if (isFlush) {
-        return { win: true, handName: 'Flush', points: payouts.flush };
+        const flushSuit = Object.entries(suitCounts).find(([_, count]) => count === 5)[0];
+        const winningCards = cards.filter(card => card.suit === flushSuit);
+        return { win: true, handName: 'Flush', points: payouts.flush, winningCards };
     }
     
     // Straight (must be exactly 5 consecutive cards)
     if (isStraight) {
-        return { win: true, handName: 'Straight', points: payouts.straight };
+        const winningCards = cards.filter(card => {
+            const value = getCardValue(card.value);
+            return value >= cardValues[0] && value <= cardValues[cardValues.length - 1];
+        });
+        return { win: true, handName: 'Straight', points: payouts.straight, winningCards };
     }
     
     // Three of a kind
     if (counts.includes(3)) {
-        return { win: true, handName: 'Three of a Kind', points: payouts.threeOfAKind };
+        const threeValue = Object.entries(valueCounts).find(([_, count]) => count === 3)[0];
+        const winningCards = cards.filter(card => getCardValue(card.value) === parseInt(threeValue));
+        return { win: true, handName: 'Three of a Kind', points: payouts.threeOfAKind, winningCards };
     }
     
     // Two pair
     if (counts.filter(count => count === 2).length === 2) {
-        return { win: true, handName: 'Two Pair', points: payouts.twoPair };
+        const pairValues = Object.entries(valueCounts)
+            .filter(([_, count]) => count === 2)
+            .map(([value]) => parseInt(value));
+        const winningCards = cards.filter(card => pairValues.includes(getCardValue(card.value)));
+        return { win: true, handName: 'Two Pair', points: payouts.twoPair, winningCards };
     }
     
     // Jacks or better (pair of jacks, queens, kings, or aces)
     if (counts.includes(2)) {
         for (const [value, count] of Object.entries(valueCounts)) {
             if (count === 2 && parseInt(value) >= 11) {
-                return { win: true, handName: 'Jacks or Better', points: payouts.jacksOrBetter };
+                const winningCards = cards.filter(card => getCardValue(card.value) === parseInt(value));
+                return { win: true, handName: 'Jacks or Better', points: payouts.jacksOrBetter, winningCards };
             }
         }
     }
