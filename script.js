@@ -376,58 +376,84 @@ function playHand() {
         // Calculate card value points
         const cardPoints = playedCards.reduce((total, card) => total + getCardScoreValue(card.value), 0);
         
-        // Display result and update score
-        if (result.win) {
-            const totalPoints = result.points + cardPoints;
-            score += totalPoints;
-            updateScore();
-            showMessage(`${result.handName}! You won ${result.points} points for the hand plus ${cardPoints} points for the cards!`, 'win');
-        } else {
-            showMessage('Not a winning hand. Try again!', 'lose');
-        }
-        
-        // Increment hands played
-        handsPlayed++;
-        updateHandsCounter();
-        
-        // Check for game end
-        if (checkGameEnd()) {
-            return;
-        }
-        
-        // After a 2 second delay, deal new cards to replace the played ones
-        setTimeout(() => {
-            // Reset selection
-            selectedCards = [];
-            
-            // Clear the message and played cards
-            hideMessage();
-            playedCardsContainer.innerHTML = '';
-            
-            // Deal new cards to replace the played ones
-            if (deck.length < playedCards.length) {
-                createDeck();
-                shuffleDeck();
+        // Show individual card scores sequentially
+        let currentIndex = 0;
+        const showNextCardScore = () => {
+            if (currentIndex < playedCards.length) {
+                const card = playedCards[currentIndex];
+                const cardElement = playedCardsContainer.children[currentIndex];
+                const score = getCardScoreValue(card.value);
+                
+                // Create and show score element
+                const scoreElement = document.createElement('div');
+                scoreElement.className = 'card-score';
+                scoreElement.textContent = `+${score}`;
+                cardElement.appendChild(scoreElement);
+                
+                // Remove score after delay
+                setTimeout(() => {
+                    scoreElement.remove();
+                    currentIndex++;
+                    showNextCardScore();
+                }, 500);
+            } else {
+                // All cards scored, show total result
+                if (result.win) {
+                    const totalPoints = result.points + cardPoints;
+                    score += totalPoints;
+                    updateScore();
+                    showMessage(`${result.handName}! You won ${result.points} points for the hand plus ${cardPoints} points for the cards!`, 'win');
+                } else {
+                    showMessage('Not a winning hand. Try again!', 'lose');
+                }
+                
+                // Increment hands played
+                handsPlayed++;
+                updateHandsCounter();
+                
+                // Check for game end
+                if (checkGameEnd()) {
+                    return;
+                }
+                
+                // After a 2 second delay, deal new cards to replace the played ones
+                setTimeout(() => {
+                    // Reset selection
+                    selectedCards = [];
+                    
+                    // Clear the message and played cards
+                    hideMessage();
+                    playedCardsContainer.innerHTML = '';
+                    
+                    // Deal new cards to replace the played ones
+                    if (deck.length < playedCards.length) {
+                        createDeck();
+                        shuffleDeck();
+                    }
+                    
+                    // Add new cards to the current hand
+                    for (let i = 0; i < playedCards.length; i++) {
+                        const newCard = deck.pop();
+                        currentHand.push(newCard);
+                    }
+                    
+                    // Sort the cards according to current sort order
+                    sortCurrentHand();
+                    
+                    // Display the updated hand
+                    displayCards();
+                    
+                    // Reset isProcessing flag
+                    isProcessing = false;
+                    
+                    // Update button states
+                    updateButtonStates();
+                }, 2000);
             }
-            
-            // Add new cards to the current hand
-            for (let i = 0; i < playedCards.length; i++) {
-                const newCard = deck.pop();
-                currentHand.push(newCard);
-            }
-            
-            // Sort the cards according to current sort order
-            sortCurrentHand();
-            
-            // Display the updated hand
-            displayCards();
-            
-            // Reset isProcessing flag
-            isProcessing = false;
-            
-            // Update button states
-            updateButtonStates();
-        }, 2000);
+        };
+        
+        // Start showing card scores
+        showNextCardScore();
     }, 600); // Slightly longer delay to complete sliding animation
 }
 
