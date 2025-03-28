@@ -490,8 +490,8 @@ function playHand() {
         if (result.win) {
             // Show hand points first
             const handScoreElement = document.createElement('div');
-            handScoreElement.className = 'card-score';
-            handScoreElement.textContent = `+${result.points}`;
+            handScoreElement.className = 'hand-score';
+            handScoreElement.textContent = `${result.handName}: +${result.points}`;
             playedCardsContainer.appendChild(handScoreElement);
             
             // Update current hand points with hand value

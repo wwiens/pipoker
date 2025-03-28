@@ -564,25 +564,39 @@ button:disabled {
 
 .card-score {
     position: absolute;
-    top: -60px;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-    background-color: #ffd700;
-    color: #000000;
+    transform: translate(-50%, -100%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #00ff00;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: 5px;
+    font-size: 1.5em;
     font-weight: bold;
-    font-size: 2.5em;
     z-index: 1000;
     animation: fadeInOut 0.8s ease-in-out;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    border: 3px solid #ffffff;
+}
+
+.hand-score {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -100%);
+    background-color: rgba(76, 175, 80, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 1.5em;
+    font-weight: bold;
+    z-index: 1000;
+    animation: fadeInOut 0.8s ease-in-out;
+    text-align: center;
+    white-space: nowrap;
 }
 
 @keyframes fadeInOut {
-    0% { opacity: 0; transform: translate(-50%, 10px); }
-    10% { opacity: 1; transform: translate(-50%, 0); }
-    90% { opacity: 1; transform: translate(-50%, 0); }
-    100% { opacity: 0; transform: translate(-50%, -10px); }
+    0% { opacity: 0; transform: translate(-50%, -90%); }
+    10% { opacity: 1; transform: translate(-50%, -100%); }
+    90% { opacity: 1; transform: translate(-50%, -100%); }
+    100% { opacity: 0; transform: translate(-50%, -110%); }
 } 
